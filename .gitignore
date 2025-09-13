@@ -1,0 +1,6 @@
+# Ignore Python virtual environments
+solar_env/
+venv/
+ENV/
+*.pyc
+__pycache__/
