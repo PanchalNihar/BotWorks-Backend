@@ -9,10 +9,7 @@ This project implements a machine learning model to predict solar power generati
 ## 🚀 Features
 
 - **Machine Learning Model**: Trained model for solar power prediction using historical data
-- **Weather API Integration**: Real-time weather data fetching for accurate predictions
-- **Data Processing**: Comprehensive data preprocessing and feature engineering
 - **Model Persistence**: Saved model checkpoints for quick loading and inference
-- **API Backend**: RESTful API endpoints for frontend integration
 - **Angular Frontend**: Interactive web interface with animations and scatter plots
 
 ## 📁 Project Structure
