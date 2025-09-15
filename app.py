@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
 import pandas as pd
@@ -10,7 +11,7 @@ from geopy.geocoders import Nominatim
 # ----------------------------
 MODEL_PATH = "solar_power_model.pkl"
 try:
-    model = joblib.load(MODEL_PATH)   # trained on 6 features
+    model = joblib.load(MODEL_PATH) # trained on 6 features
 except Exception as e:
     model = None
     print("⚠️ Could not load model:", e)
@@ -19,13 +20,33 @@ except Exception as e:
 # Initialize FastAPI + Geocoder
 # ----------------------------
 app = FastAPI(title="Solar Power Prediction API")
+
+# ----------------------------
+# CORS Configuration - ADD THIS SECTION
+# ----------------------------
+origins = [
+    "http://localhost:4200",        # Angular development server
+    "http://127.0.0.1:4200",       # Alternative localhost
+    "http://localhost:3000",        # Alternative frontend port
+    "http://127.0.0.1:3000",       # Alternative localhost
+]
+
+# THIS IS THE MISSING PART - Add CORS middleware to your app
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,          # Allowed origins
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],  # Allowed HTTP methods
+    allow_headers=["*"],            # Allowed headers
+)
+
 geolocator = Nominatim(user_agent="solar_predictor")
 
 # ----------------------------
 # Input Schema
 # ----------------------------
 class PredictionInput(BaseModel):
-    location: Optional[str] = None   # Optional: City/Place
+    location: Optional[str] = None # Optional: City/Place
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     shortwave_radiation_backwards_sfc: float
@@ -59,17 +80,17 @@ def root():
 async def predict(input: PredictionInput):
     if model is None:
         raise HTTPException(status_code=500, detail="Model not available. Train it first.")
-
+    
     # Resolve coordinates
     lat, lon = input.latitude, input.longitude
     if input.location and (lat is None or lon is None):
         lat, lon = get_coordinates_from_location(input.location)
         if lat is None or lon is None:
             raise HTTPException(status_code=400, detail="Could not resolve location to coordinates.")
-
+    
     if lat is None or lon is None:
         raise HTTPException(status_code=400, detail="Either provide latitude+longitude or a valid location.")
-
+    
     # Build feature vector (exactly the same 6 features used in training)
     features = {
         "latitude": lat,
@@ -79,7 +100,7 @@ async def predict(input: PredictionInput):
         "zenith": input.zenith,
         "angle_of_incidence": input.angle_of_incidence
     }
-
+    
     # Predict
     try:
         X = pd.DataFrame([features])
@@ -87,7 +108,7 @@ async def predict(input: PredictionInput):
         return {
             "latitude": lat,
             "longitude": lon,
-            "predicted_generated_kw": float(pred[0])
+            "predicted_generated_kw": float(pred)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
